@@ -55,6 +55,27 @@ export default function OrganizerDashboard() {
         }
     };
 
+    const handleDelete = async (eventId: string, eventName: string) => {
+        if (!confirm(`Are you sure you want to delete "${eventName}"? This will also delete all check-in/out records.`)) {
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/events/${eventId}`, {
+                method: 'DELETE',
+            });
+
+            if (res.ok) {
+                fetchEvents();
+            } else {
+                alert('Failed to delete event');
+            }
+        } catch (error) {
+            console.error('Failed to delete event', error);
+            alert('Failed to delete event');
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gray-50 p-8">
             <div className="max-w-4xl mx-auto">
@@ -103,19 +124,35 @@ export default function OrganizerDashboard() {
                         <ul className="divide-y divide-gray-200">
                             {events.map((event) => (
                                 <li key={event.id} className="p-6 hover:bg-gray-50 transition-colors">
-                                    <Link href={`/organizer/${event.id}`} className="flex justify-between items-center group">
-                                        <div>
-                                            <h3 className="text-lg font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
-                                                {event.name}
-                                            </h3>
-                                            <p className="text-sm text-gray-500">
-                                                {new Date(event.date).toLocaleDateString()}
-                                            </p>
+                                    <div className="flex justify-between items-center">
+                                        <Link href={`/organizer/${event.id}`} className="flex-1 group">
+                                            <div>
+                                                <h3 className="text-lg font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
+                                                    {event.name}
+                                                </h3>
+                                                <p className="text-sm text-gray-500">
+                                                    {new Date(event.date).toLocaleDateString()}
+                                                </p>
+                                            </div>
+                                        </Link>
+                                        <div className="flex items-center gap-3">
+                                            <Link
+                                                href={`/organizer/${event.id}`}
+                                                className="text-gray-400 hover:text-blue-500 text-sm"
+                                            >
+                                                View Details →
+                                            </Link>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDelete(event.id, event.name);
+                                                }}
+                                                className="text-red-500 hover:text-red-700 px-3 py-1 rounded-md hover:bg-red-50 transition-colors text-sm font-medium"
+                                            >
+                                                Delete
+                                            </button>
                                         </div>
-                                        <span className="text-gray-400 group-hover:text-blue-500">
-                                            View Details →
-                                        </span>
-                                    </Link>
+                                    </div>
                                 </li>
                             ))}
                         </ul>
