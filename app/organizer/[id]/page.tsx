@@ -45,22 +45,36 @@ export default function EventDetails({ params }: { params: Promise<{ id: string 
     };
 
 
+
     const downloadCSV = () => {
         if (!event) return;
 
-        // Group records by attendee name
-        const attendeeMap = new Map<string, { checkIn?: Date; checkOut?: Date }>();
+        // Group records by attendee name and pair check-ins with check-outs
+        const attendeeMap = new Map<string, Array<{ checkIn?: Date; checkOut?: Date }>>();
 
-        event.records.forEach(record => {
+        // Sort records by timestamp
+        const sortedRecords = [...event.records].sort((a, b) =>
+            new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        );
+
+        sortedRecords.forEach(record => {
             if (!attendeeMap.has(record.attendeeName)) {
-                attendeeMap.set(record.attendeeName, {});
+                attendeeMap.set(record.attendeeName, []);
             }
-            const entry = attendeeMap.get(record.attendeeName)!;
+            const shifts = attendeeMap.get(record.attendeeName)!;
 
             if (record.type === 'IN') {
-                entry.checkIn = new Date(record.timestamp);
+                // Start a new shift
+                shifts.push({ checkIn: new Date(record.timestamp) });
             } else if (record.type === 'OUT') {
-                entry.checkOut = new Date(record.timestamp);
+                // Find the most recent shift without a check-out
+                const openShift = [...shifts].reverse().find(s => s.checkIn && !s.checkOut);
+                if (openShift) {
+                    openShift.checkOut = new Date(record.timestamp);
+                } else {
+                    // Check-out without check-in (edge case)
+                    shifts.push({ checkOut: new Date(record.timestamp) });
+                }
             }
         });
 
@@ -81,17 +95,25 @@ export default function EventDetails({ params }: { params: Promise<{ id: string 
             return `${hours}h ${minutes}m`;
         };
 
-        const headers = ['Name', 'Check-In Date', 'Check-In Time', 'Check-Out Date', 'Check-Out Time', 'Duration'];
-        const rows = Array.from(attendeeMap.entries())
+        const headers = ['Name', 'Shift #', 'Check-In Date', 'Check-In Time', 'Check-Out Date', 'Check-Out Time', 'Duration'];
+        const rows: string[][] = [];
+
+        // Sort by name
+        Array.from(attendeeMap.entries())
             .sort(([nameA], [nameB]) => nameA.localeCompare(nameB))
-            .map(([name, times]) => [
-                escapeCSV(name),
-                times.checkIn ? times.checkIn.toLocaleDateString() : 'N/A',
-                times.checkIn ? times.checkIn.toLocaleTimeString() : 'N/A',
-                times.checkOut ? times.checkOut.toLocaleDateString() : 'N/A',
-                times.checkOut ? times.checkOut.toLocaleTimeString() : 'N/A',
-                calculateDuration(times.checkIn, times.checkOut)
-            ]);
+            .forEach(([name, shifts]) => {
+                shifts.forEach((shift, index) => {
+                    rows.push([
+                        escapeCSV(name),
+                        (index + 1).toString(),
+                        shift.checkIn ? shift.checkIn.toLocaleDateString() : 'N/A',
+                        shift.checkIn ? shift.checkIn.toLocaleTimeString() : 'N/A',
+                        shift.checkOut ? shift.checkOut.toLocaleDateString() : 'N/A',
+                        shift.checkOut ? shift.checkOut.toLocaleTimeString() : 'N/A',
+                        calculateDuration(shift.checkIn, shift.checkOut)
+                    ]);
+                });
+            });
 
         const csvContent = [
             headers.join(','),
