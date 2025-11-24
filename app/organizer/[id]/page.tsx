@@ -44,15 +44,54 @@ export default function EventDetails({ params }: { params: Promise<{ id: string 
         }
     };
 
+
     const downloadCSV = () => {
         if (!event) return;
 
-        const headers = ['Name', 'Type', 'Time'];
-        const rows = event.records.map(r => [
-            r.attendeeName,
-            r.type,
-            new Date(r.timestamp).toLocaleString()
-        ]);
+        // Group records by attendee name
+        const attendeeMap = new Map<string, { checkIn?: Date; checkOut?: Date }>();
+
+        event.records.forEach(record => {
+            if (!attendeeMap.has(record.attendeeName)) {
+                attendeeMap.set(record.attendeeName, {});
+            }
+            const entry = attendeeMap.get(record.attendeeName)!;
+
+            if (record.type === 'IN') {
+                entry.checkIn = new Date(record.timestamp);
+            } else if (record.type === 'OUT') {
+                entry.checkOut = new Date(record.timestamp);
+            }
+        });
+
+        // Helper to escape CSV fields
+        const escapeCSV = (field: string) => {
+            if (field.includes(',') || field.includes('"') || field.includes('\n')) {
+                return `"${field.replace(/"/g, '""')}"`;
+            }
+            return field;
+        };
+
+        // Helper to calculate duration
+        const calculateDuration = (checkIn?: Date, checkOut?: Date): string => {
+            if (!checkIn || !checkOut) return 'N/A';
+            const diffMs = checkOut.getTime() - checkIn.getTime();
+            const hours = Math.floor(diffMs / (1000 * 60 * 60));
+            const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+            return `${hours}h ${minutes}m`;
+        };
+
+        const headers = ['Name', 'Check-In Date', 'Check-In Time', 'Check-Out Date', 'Check-Out Time', 'Duration'];
+        const rows = Array.from(attendeeMap.entries())
+            .sort(([nameA], [nameB]) => nameA.localeCompare(nameB))
+            .map(([name, times]) => [
+                escapeCSV(name),
+                times.checkIn ? times.checkIn.toLocaleDateString() : 'N/A',
+                times.checkIn ? times.checkIn.toLocaleTimeString() : 'N/A',
+                times.checkOut ? times.checkOut.toLocaleDateString() : 'N/A',
+                times.checkOut ? times.checkOut.toLocaleTimeString() : 'N/A',
+                calculateDuration(times.checkIn, times.checkOut)
+            ]);
 
         const csvContent = [
             headers.join(','),
