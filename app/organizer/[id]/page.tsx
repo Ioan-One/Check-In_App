@@ -7,6 +7,7 @@ import Link from 'next/link';
 interface Record {
     id: string;
     attendeeName: string;
+    department?: string;
     type: string;
     timestamp: string;
 }
@@ -205,6 +206,7 @@ export default function EventDetails({ params }: { params: Promise<{ id: string 
                                 <thead className="bg-gray-50 sticky top-0">
                                     <tr>
                                         <th className="p-4 text-sm font-medium text-gray-500">Name</th>
+                                        <th className="p-4 text-sm font-medium text-gray-500">Department</th>
                                         <th className="p-4 text-sm font-medium text-gray-500">Action</th>
                                         <th className="p-4 text-sm font-medium text-gray-500">Time</th>
                                     </tr>
@@ -213,6 +215,7 @@ export default function EventDetails({ params }: { params: Promise<{ id: string 
                                     {event.records.map((record) => (
                                         <tr key={record.id} className="hover:bg-gray-50">
                                             <td className="p-4 font-medium text-gray-900">{record.attendeeName}</td>
+                                            <td className="p-4 text-sm text-gray-600">{record.department || '-'}</td>
                                             <td className="p-4">
                                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${record.type === 'IN' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                                                     }`}>
@@ -226,7 +229,7 @@ export default function EventDetails({ params }: { params: Promise<{ id: string 
                                     ))}
                                     {event.records.length === 0 && (
                                         <tr>
-                                            <td colSpan={3} className="p-8 text-center text-gray-500">
+                                            <td colSpan={4} className="p-8 text-center text-gray-500">
                                                 No records yet. Waiting for scans...
                                             </td>
                                         </tr>
