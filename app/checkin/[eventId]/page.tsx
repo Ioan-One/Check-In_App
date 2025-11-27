@@ -8,15 +8,29 @@ function CheckInContent({ params }: { params: { eventId: string } }) {
     const type = searchParams.get('type') || 'IN';
 
     const [name, setName] = useState('');
+    const [department, setDepartment] = useState('');
     const [isNameSaved, setIsNameSaved] = useState(false);
+    const [isDepartmentSaved, setIsDepartmentSaved] = useState(false);
     const [status, setStatus] = useState<'IDLE' | 'SUBMITTING' | 'SUCCESS' | 'ERROR'>('IDLE');
     const [message, setMessage] = useState('');
 
+    const departments = [
+        'Resurse Umane',
+        'Relatii externe',
+        'Evenimente',
+        'Imagine si PR'
+    ];
+
     useEffect(() => {
         const savedName = localStorage.getItem('attendeeName');
+        const savedDepartment = localStorage.getItem('attendeeDepartment');
         if (savedName) {
             setName(savedName);
             setIsNameSaved(true);
+        }
+        if (savedDepartment) {
+            setDepartment(savedDepartment);
+            setIsDepartmentSaved(true);
         }
     }, []);
 
@@ -25,6 +39,14 @@ function CheckInContent({ params }: { params: { eventId: string } }) {
         if (name.trim()) {
             localStorage.setItem('attendeeName', name.trim());
             setIsNameSaved(true);
+        }
+    };
+
+    const handleDepartmentSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (department) {
+            localStorage.setItem('attendeeDepartment', department);
+            setIsDepartmentSaved(true);
         }
     };
 
@@ -37,6 +59,7 @@ function CheckInContent({ params }: { params: { eventId: string } }) {
                 body: JSON.stringify({
                     eventId: params.eventId,
                     attendeeName: name,
+                    department: department || null,
                     type,
                 }),
             });
@@ -55,8 +78,11 @@ function CheckInContent({ params }: { params: { eventId: string } }) {
 
     const resetName = () => {
         localStorage.removeItem('attendeeName');
+        localStorage.removeItem('attendeeDepartment');
         setName('');
+        setDepartment('');
         setIsNameSaved(false);
+        setIsDepartmentSaved(false);
     };
 
     if (status === 'SUCCESS') {
@@ -110,10 +136,41 @@ function CheckInContent({ params }: { params: { eventId: string } }) {
                             Continue
                         </button>
                     </form>
+                ) : !isDepartmentSaved ? (
+                    <form onSubmit={handleDepartmentSubmit}>
+                        <div className="mb-6">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Select your department
+                            </label>
+                            <select
+                                value={department}
+                                onChange={(e) => setDepartment(e.target.value)}
+                                className="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                                required
+                            >
+                                <option value="">Choose a department...</option>
+                                {departments.map((dept) => (
+                                    <option key={dept} value={dept}>
+                                        {dept}
+                                    </option>
+                                ))}
+                            </select>
+                            <p className="mt-2 text-xs text-gray-500">
+                                We'll remember this on this device.
+                            </p>
+                        </div>
+                        <button
+                            type="submit"
+                            className="w-full bg-blue-600 text-white py-3 rounded-md font-semibold hover:bg-blue-700 transition-colors"
+                        >
+                            Continue
+                        </button>
+                    </form>
                 ) : (
                     <div className="text-center">
                         <p className="text-gray-600 mb-2">Welcome back,</p>
-                        <h2 className="text-xl font-bold text-gray-900 mb-8">{name}</h2>
+                        <h2 className="text-xl font-bold text-gray-900 mb-2">{name}</h2>
+                        <p className="text-sm text-gray-500 mb-8">{department}</p>
 
                         <button
                             onClick={handleCheckIn}
@@ -134,7 +191,7 @@ function CheckInContent({ params }: { params: { eventId: string } }) {
                             onClick={resetName}
                             className="mt-8 text-sm text-gray-400 hover:text-gray-600 underline"
                         >
-                            Not {name}? Change Name
+                            Not {name}? Change Name/Department
                         </button>
                     </div>
                 )}

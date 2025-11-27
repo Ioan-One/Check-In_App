@@ -50,7 +50,7 @@ export default function EventDetails({ params }: { params: Promise<{ id: string 
         if (!event) return;
 
         // Group records by attendee name and pair check-ins with check-outs
-        const attendeeMap = new Map<string, Array<{ checkIn?: Date; checkOut?: Date }>>();
+        const attendeeMap = new Map<string, Array<{ checkIn?: Date; checkOut?: Date; department?: string }>>();
 
         // Sort records by timestamp
         const sortedRecords = [...event.records].sort((a, b) =>
@@ -65,7 +65,10 @@ export default function EventDetails({ params }: { params: Promise<{ id: string 
 
             if (record.type === 'IN') {
                 // Start a new shift
-                shifts.push({ checkIn: new Date(record.timestamp) });
+                shifts.push({
+                    checkIn: new Date(record.timestamp),
+                    department: record.department || undefined
+                });
             } else if (record.type === 'OUT') {
                 // Find the most recent shift without a check-out
                 const openShift = [...shifts].reverse().find(s => s.checkIn && !s.checkOut);
@@ -95,7 +98,7 @@ export default function EventDetails({ params }: { params: Promise<{ id: string 
             return `${hours}h ${minutes}m`;
         };
 
-        const headers = ['Name', 'Shift #', 'Check-In Date', 'Check-In Time', 'Check-Out Date', 'Check-Out Time', 'Duration'];
+        const headers = ['Name', 'Department', 'Shift #', 'Check-In Date', 'Check-In Time', 'Check-Out Date', 'Check-Out Time', 'Duration'];
         const rows: string[][] = [];
 
         // Sort by name
@@ -105,6 +108,7 @@ export default function EventDetails({ params }: { params: Promise<{ id: string 
                 shifts.forEach((shift, index) => {
                     rows.push([
                         escapeCSV(name),
+                        shift.department || 'N/A',
                         (index + 1).toString(),
                         shift.checkIn ? shift.checkIn.toLocaleDateString() : 'N/A',
                         shift.checkIn ? shift.checkIn.toLocaleTimeString() : 'N/A',

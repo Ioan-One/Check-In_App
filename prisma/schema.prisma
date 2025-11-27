@@ -22,6 +22,7 @@ model Record {
   id           String   @id @default(cuid())
   eventId      String
   attendeeName String
+  department   String?  // Optional: Resurse Umane, Relatii externe, Evenimente, Imagine si PR
   type         String   // "IN" or "OUT"
   timestamp    DateTime @default(now())
   event        Event    @relation(fields: [eventId], references: [id])
